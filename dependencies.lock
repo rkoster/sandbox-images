@@ -1,0 +1,43 @@
+format-version: 1
+target:
+  platform: linux/amd64
+  stack: cflinuxfs5
+builder:
+  name: golang
+  tag: "1.26.5-bookworm"
+  digest: sha256:53eeac89074db483fdf0ab3be1df32bf6e47562263d2d0d6baa7f26acb4957dd
+base:
+  name: ghcr.io/cloudfoundry/k8s/cflinuxfs5
+  tag: "0.53.0"
+  digest: sha256:63774da0d2fd6f70030160d97ec173954990359a2617661a7fcfa7ee6f4c5966
+toolchain:
+  ruby_buildpack:
+    repository: https://github.com/cloudfoundry/ruby-buildpack.git
+    revision: af0427fa4b98bb512b09cd47fd490e370179d198
+  go_buildpack:
+    repository: https://github.com/cloudfoundry/go-buildpack.git
+    revision: 9ac540442df0dfd34e587a55a3b1139b6230fa8d
+  ruby:
+    version: "3.3.11"
+  uri: https://buildpacks.cloudfoundry.org/dependencies/ruby/ruby_3.3.11_linux_x64_cflinuxfs5_5b5128df.tgz
+    sha256: 5b5128df028a3173b59cd45281584659cead4d41ada12f31bf325bfb7aac30ce
+  bundler:
+    version: "2.7.2"
+    uri: https://buildpacks.cloudfoundry.org/dependencies/bundler/bundler_2.7.2_linux_noarch_any-stack_54c53519.tgz
+    sha256: 54c53519ff41ac0ad0d498086039f6ee2eac5d1bdef5ad31ab33e8ab2c2b1e21
+  node:
+    version: "24.15.0"
+    uri: https://buildpacks.cloudfoundry.org/dependencies/node/node_24.15.0_linux_x64_cflinuxfs5_23519f1d.tgz
+    sha256: 23519f1df6d063ffb2edc5ccc98aa38ee9608ddf11a512441912d4f5e23e7ef3
+  yarn:
+    version: "1.22.22"
+    uri: https://buildpacks.cloudfoundry.org/dependencies/yarn/yarn_1.22.22_linux_noarch_any-stack_b6132b86.tgz
+    sha256: b6132b864c1948174385b4efec842d21cb964c2ae1e79fedcb4eb783ffdaa8a5
+  go:
+    version: "1.26.5"
+    uri: https://buildpacks.cloudfoundry.org/dependencies/go/go_1.26.5_linux_x64_cflinuxfs5_72d90969.tgz
+    sha256: 72d90969690f8d75d986910b11bab271b46c7cfdb807741d7324f15160dc59be
+execd:
+  repository: https://github.com/opensandbox-group/OpenSandbox.git
+  revision: 2bb5dde3af6736376ca127b1ae6ed0178727cd01
+  path: components/execd

@@ -1,0 +1,33 @@
+#!/bin/sh
+set -eu
+
+execd_pid=
+workload_pid=
+
+shutdown() {
+  trap - TERM INT
+  [ -z "${workload_pid}" ] || kill -TERM "${workload_pid}" 2>/dev/null || true
+  [ -z "${execd_pid}" ] || kill -TERM "${execd_pid}" 2>/dev/null || true
+  [ -z "${workload_pid}" ] || wait "${workload_pid}" 2>/dev/null || true
+  [ -z "${execd_pid}" ] || wait "${execd_pid}" 2>/dev/null || true
+}
+trap shutdown TERM INT
+
+/opt/opensandbox/execd &
+execd_pid=$!
+
+if [ "$#" -gt 0 ]; then
+  "$@" &
+  workload_pid=$!
+  set +e
+  wait "$workload_pid"
+  status=$?
+  set -e
+  workload_pid=
+  kill -TERM "$execd_pid" 2>/dev/null || true
+  wait "$execd_pid" 2>/dev/null || true
+  execd_pid=
+  exit "$status"
+fi
+
+wait "$execd_pid"
