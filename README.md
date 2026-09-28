@@ -9,6 +9,13 @@ boundary. It does not add persistence, user isolation, or an endpoint proxy.
 Keep sandbox ingress behind the owning-agent mTLS route policy described in the
 workspace architecture.
 
+Runtime packaging removes Go tests/test data, Ruby's unused static archive,
+Node package-manager caches, and development/documentation files from the
+cflinuxfs5 filesystem. It preserves Go's GOROOT compiler sources and tools so
+users can build Go programs in the sandbox. The final stage starts from
+`scratch` and copies the pruned root filesystem so removed base layers are not
+counted toward CF's unpacked disk limit.
+
 ## Pins
 
 All toolchain artifacts come from the current upstream Ruby/Go buildpack
@@ -41,7 +48,7 @@ the module-local `replace` for `components/internal` resolves:
 ```sh
 docker build --platform linux/amd64 \
   -f images/ruby-go/Dockerfile \
-  -t ghcr.io/rkoster/cf-cflinuxfs5-ruby-go:0.1.0 \
+  -t ghcr.io/rkoster/cf-cflinuxfs5-ruby-go:slim-0.1.1 \
   .
 ```
 

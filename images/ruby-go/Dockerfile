@@ -16,7 +16,7 @@ RUN go mod download \
     && CGO_ENABLED=0 go build -trimpath -buildvcs=false \
        -ldflags='-buildid= -B none' -o /out/execd ./main.go
 
-FROM ${CFLINUXFS5_IMAGE} AS runtime
+FROM ${CFLINUXFS5_IMAGE} AS cflinuxfs5-rootfs
 ARG RUBY_URI=https://buildpacks.cloudfoundry.org/dependencies/ruby/ruby_3.3.11_linux_x64_cflinuxfs5_5b5128df.tgz
 ARG RUBY_SHA256=5b5128df028a3173b59cd45281584659cead4d41ada12f31bf325bfb7aac30ce
 ARG BUNDLER_URI=https://buildpacks.cloudfoundry.org/dependencies/bundler/bundler_2.7.2_linux_noarch_any-stack_54c53519.tgz
@@ -42,18 +42,23 @@ RUN set -eux; \
     fetch_extract node "$NODE_URI" "$NODE_SHA256"; \
     fetch_extract yarn "$YARN_URI" "$YARN_SHA256"; \
     fetch_extract go "$GO_URI" "$GO_SHA256"; \
-    find /tmp/toolchain -maxdepth 6 -type f \( -name ruby -o -name go \)
-
-# Buildpack dependency archives contain stack-ready directory trees. Preserve
-# their relative layout at /opt/stack and keep the image's normal /usr binaries.
-RUN set -eux; \
     for component in ruby bundler node yarn go; do \
       cp -a "/tmp/toolchain/${component}/." /opt/stack/; \
     done; \
+    rm -rf /opt/stack/test /opt/stack/doc /opt/stack/misc /opt/stack/api /opt/stack/pkg/bootstrap /opt/stack/pkg/obj/go-build /opt/stack/include/node /opt/stack/lib/libruby-static.a /opt/stack/lib/node_modules/npm /opt/stack/lib/node_modules/corepack /opt/stack/lib/v8-compile-cache.js /opt/stack/preinstall.js /opt/stack/package.json /opt/stack/go.env /opt/stack/gopath /usr/share/doc /usr/share/man /usr/share/info /usr/share/lintian /usr/share/bash-completion /usr/share/locale /usr/share/fonts /usr/share/icons /var/lib/apt/lists /usr/share/perl /usr/lib/perl /usr/lib/x86_64-linux-gnu/perl /usr/lib/x86_64-linux-gnu/perl-base /usr/lib/python3.12 /usr/bin/apt /usr/bin/apt-get /usr/bin/dpkg /usr/bin/dpkg-query /usr/bin/dpkg-deb /usr/bin/dpkg-divert /usr/bin/dpkg-maintscript-helper /usr/bin/dpkg-trigger /usr/bin/dpkg-vendor /usr/bin/apt-cache /usr/bin/apt-config /usr/bin/apt-mark /usr/bin/apt-key /usr/bin/update-alternatives /usr/share/aptitude /usr/share/aclocal /usr/share/aclocal-1.16 /usr/share/automake-1.16 /usr/share/cmake-3.28 /usr/share/gdb /usr/share/gitweb /usr/share/lintian /usr/share/source-highlight /usr/share/vim /usr/share/X11 /usr/lib/git-core /usr/lib/ocaml /usr/lib/udev /usr/lib/file /usr/lib/gnupg1 /usr/lib/gnupg /usr/lib/sysstat /usr/lib/tasksel /usr/libexec/sudo /usr/libexec/dpkg /usr/bin/gcc /usr/bin/g++ /usr/bin/make /usr/bin/cmake /usr/bin/git /usr/bin/git-receive-pack /usr/bin/git-upload-pack /usr/bin/perl /usr/bin/perl5.38.2 /usr/bin/python3 /usr/bin/python3.12 /usr/lib/x86_64-linux-gnu/openblas-pthread /usr/lib/x86_64-linux-gnu/lapack /usr/lib/x86_64-linux-gnu/ImageMagick-6.9.12 /usr/share/ImageMagick-6 /usr/bin/convert /usr/bin/identify /usr/bin/animate /usr/bin/compare /usr/bin/composite /usr/bin/montage /usr/bin/graphviz /usr/lib/x86_64-linux-gnu/graphviz /usr/share/graphviz /usr/lib/x86_64-linux-gnu/gprofng /usr/lib/x86_64-linux-gnu/blas /usr/lib/x86_64-linux-gnu/ldscripts /usr/lib/x86_64-linux-gnu/cmake /usr/lib/x86_64-linux-gnu/pkgconfig /usr/share/pkgconfig /usr/share/fonts/X11 /usr/share/X11 /usr/lib/systemd /usr/lib/x86_64-linux-gnu/systemd /usr/lib/udev /usr/bin/dpkg-split /usr/bin/dpkg-statoverride /usr/bin/deb-systemd-helper /usr/bin/deb-systemd-invoke /usr/bin/update-mime-database /usr/bin/fc-cache /usr/bin/fc-list /usr/bin/fc-match /usr/bin/locale-gen /usr/bin/localedef /usr/share/i18n /usr/share/zoneinfo/posix /usr/share/zoneinfo/right /var/lib/apt/lists /var/cache/apt/archives; \
+    find /opt/stack/src -type f -name '*_test.go' -delete; \
+    find /opt/stack/src -type d -name testdata -prune -exec rm -rf {} +; \
     chmod -R a+rX /opt/stack; \
-    find /opt/stack -maxdepth 8 -type f \( -name ruby -o -name bundle -o -name node -o -name yarn -o -name go \) -print
+    rm -rf /tmp/toolchain /tmp/*.tgz
+
+# Keep only the merged, pruned cflinuxfs5 filesystem. This avoids carrying the
+# large upstream base-image layers plus whiteout layers in the final Docker
+# image, which matters because CF enforces disk quota over the unpacked image.
+FROM scratch AS runtime
+COPY --from=cflinuxfs5-rootfs / /
 
 ENV PATH="/opt/stack/bin:/usr/local/bin:/usr/bin:/bin" \
+    GOROOT=/opt/stack \
     GOPATH=/workspace/go \
     GEM_HOME=/workspace/gems \
     GEM_PATH=/opt/stack:/workspace/gems \

@@ -41,3 +41,8 @@ execd:
   repository: https://github.com/opensandbox-group/OpenSandbox.git
   revision: 2bb5dde3af6736376ca127b1ae6ed0178727cd01
   path: components/execd
+images:
+  slim:
+    tag: slim-0.1.1
+    local-linux-amd64-image-id: sha256:068a499493742f7c3b272425f1f2b47e06fe2ebd08da1461555183f3167639d5
+    uncompressed-size-bytes: 2014327282
