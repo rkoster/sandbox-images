@@ -2,6 +2,8 @@ name: Publish sandbox image
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
   workflow_dispatch:
@@ -28,7 +30,7 @@ jobs:
           images: ghcr.io/rkoster/cf-cflinuxfs5-ruby-go
           tags: |
             type=ref,event=tag
-            type=raw,value=latest
+            type=raw,value=latest,enable={{is_default_branch}}
       - uses: docker/build-push-action@v6
         with:
           context: .
