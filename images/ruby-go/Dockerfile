@@ -70,6 +70,7 @@ COPY --from=execd-builder /out/execd /opt/opensandbox/execd
 COPY images/ruby-go/bootstrap /opt/opensandbox/bootstrap
 RUN chmod 0755 /opt/opensandbox/execd /opt/opensandbox/bootstrap \
     && mkdir -p /workspace/go /workspace/gems /workspace/bundle /workspace/home \
+    && for binary in bundle bundler erb gem go gofmt irb node npm npx racc rake rbs rdbg rdoc ri ruby syntax_suggest typeprof yarn yarnpkg; do ln -s "/opt/stack/bin/${binary}" "/usr/bin/${binary}"; done \
     && chown -R vcap:vcap /workspace
 
 USER vcap
