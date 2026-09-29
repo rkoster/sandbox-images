@@ -1,6 +1,18 @@
 #!/bin/sh
 set -eu
 
+# CF's Docker lifecycle replaces the image PATH with its container PATH.
+# Restore the bundled toolchain paths for execd-launched commands and workloads.
+PATH="/opt/stack/bin:/usr/local/bin:/usr/bin:/bin"
+export PATH
+GOROOT=/opt/stack
+GOPATH=${GOPATH:-/workspace/go}
+GEM_HOME=${GEM_HOME:-/workspace/gems}
+GEM_PATH="/opt/stack:/workspace/gems"
+BUNDLE_PATH=${BUNDLE_PATH:-/workspace/bundle}
+HOME=${HOME:-/workspace/home}
+export GOROOT GOPATH GEM_HOME GEM_PATH BUNDLE_PATH HOME
+
 execd_pid=
 workload_pid=
 

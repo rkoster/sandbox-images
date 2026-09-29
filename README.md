@@ -59,7 +59,9 @@ and updates.
 
 ## Runtime contract
 
-The image starts `/opt/opensandbox/bootstrap` as PID 1. By default it runs
+The image starts `/opt/opensandbox/bootstrap` as PID 1. The bootstrap restores
+the `/opt/stack/bin` toolchain path because CF's Docker lifecycle replaces the
+image `PATH`. By default it runs
 `execd` on port `44772`. CF's Docker lifecycle supplies a process command which
 overrides the image command; that command is executed directly. This lets the
 facade request a per-sandbox entrypoint while keeping execd running alongside
