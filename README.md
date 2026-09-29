@@ -79,11 +79,11 @@ installed binaries in `/opt/stack/bin`. The CF CLI is installed directly in
 `/usr/bin/cf`. Both the image symlinks and bootstrap PATH are retained for
 execd-launched workloads.
 
-By default the image runs
-`execd` on port `44772`. CF's Docker lifecycle supplies a process command which
-overrides the image command; that command is executed directly. This lets the
-facade request a per-sandbox entrypoint while keeping execd running alongside
-it. `CF_SANDBOX_PORT` is not an image setting: execd's API remains on `44772`.
+By default the image runs `execd` on port `44772`. CF's Docker lifecycle
+supplies a process command which replaces the image entrypoint. The facade
+sets that command to `/opt/opensandbox/bootstrap` plus the requested workload
+arguments, preserving workspace restore and execd startup. `CF_SANDBOX_PORT`
+is not an image setting: execd's API remains on `44772`.
 
 ```sh
 docker run --rm --entrypoint /opt/opensandbox/bootstrap IMAGE /bin/sh -lc 'ruby -v; bundle -v; node --version; yarn --version; go version'

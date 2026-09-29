@@ -57,7 +57,7 @@ func TestRcloneConfigIsPrivateAndUsesBindingValues(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, expected := range []string{"type = s3", "access_key_id = \"key\"", "secret_access_key = \"secret\"", "region = \"region-1\"", "endpoint = \"https://s3.example\"", "session_token = \"session\""} {
+	for _, expected := range []string{"type = s3", "access_key_id = key", "secret_access_key = secret", "region = region-1", "endpoint = https://s3.example", "session_token = session"} {
 		if !strings.Contains(string(contents), expected) {
 			t.Errorf("config missing %q", expected)
 		}

@@ -254,9 +254,9 @@ func writeRcloneConfig(path string, cfg config) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
 	}
-	contents := fmt.Sprintf("[%s]\ntype = s3\nprovider = Other\nenv_auth = false\naccess_key_id = %s\nsecret_access_key = %s\nregion = %s\nendpoint = %s\nforce_path_style = true\nno_check_bucket = true\n", cfg.Remote, ini(cfg.AccessKey), ini(cfg.SecretKey), ini(cfg.Region), ini(cfg.Endpoint))
+	contents := fmt.Sprintf("[%s]\ntype = s3\nprovider = Other\nenv_auth = false\naccess_key_id = %s\nsecret_access_key = %s\nregion = %s\nendpoint = %s\nforce_path_style = true\nno_check_bucket = true\n", cfg.Remote, rcloneValue(cfg.AccessKey), rcloneValue(cfg.SecretKey), rcloneValue(cfg.Region), rcloneValue(cfg.Endpoint))
 	if cfg.Session != "" {
-		contents += "session_token = " + ini(cfg.Session) + "\n"
+		contents += "session_token = " + rcloneValue(cfg.Session) + "\n"
 	}
 	if err := os.WriteFile(path, []byte(contents), 0600); err != nil {
 		return fmt.Errorf("write private rclone config: %w", err)
@@ -280,8 +280,10 @@ func execRcloneWithConfig(ctx context.Context, configPath, binary string, args .
 	return cmd.Output()
 }
 
-func ini(value string) string {
-	return `"` + strings.ReplaceAll(strings.ReplaceAll(value, `\`, `\\`), `"`, `\"`) + `"`
+func rcloneValue(value string) string {
+	// Rclone's config parser treats quotes as part of the value; writing
+	// region = "us-east-1" makes AWS signing reject the quoted region.
+	return strings.ReplaceAll(strings.ReplaceAll(value, "\r", ""), "\n", "")
 }
 
 func env(name, fallback string) string {
