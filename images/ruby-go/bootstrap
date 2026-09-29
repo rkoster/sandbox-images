@@ -5,6 +5,7 @@ set -eu
 # Restore the bundled toolchain paths for execd-launched commands and workloads.
 PATH="/opt/stack/bin:/usr/local/bin:/usr/bin:/bin"
 export PATH
+umask 077
 GOROOT=/opt/stack
 GOPATH=${GOPATH:-/workspace/go}
 GEM_HOME=${GEM_HOME:-/workspace/gems}
@@ -14,16 +15,56 @@ HOME=${HOME:-/workspace/home}
 export GOROOT GOPATH GEM_HOME GEM_PATH BUNDLE_PATH HOME
 
 execd_pid=
+sync_pid=
 workload_pid=
 
 shutdown() {
-  trap - TERM INT
+  trap - TERM INT EXIT
   [ -z "${workload_pid}" ] || kill -TERM "${workload_pid}" 2>/dev/null || true
+  [ -z "${sync_pid}" ] || kill -TERM "${sync_pid}" 2>/dev/null || true
   [ -z "${execd_pid}" ] || kill -TERM "${execd_pid}" 2>/dev/null || true
   [ -z "${workload_pid}" ] || wait "${workload_pid}" 2>/dev/null || true
+  [ -z "${sync_pid}" ] || wait "${sync_pid}" 2>/dev/null || true
   [ -z "${execd_pid}" ] || wait "${execd_pid}" 2>/dev/null || true
+  rm -f /tmp/workspace-sync-vcap-application.json /tmp/workspace-sync-ready
 }
-trap shutdown TERM INT
+trap shutdown TERM INT EXIT
+
+if [ -n "${VCAP_SERVICES:-}" ] && printf '%s' "$VCAP_SERVICES" | /bin/jq -e '[.[]?[]? | select(.name == "workspace-sync" or .binding_name == "workspace-sync" or ((.name // "") | startswith("workspace-sync-")))] | length > 0' >/dev/null; then
+  s3_binding=$(printf '%s' "$VCAP_SERVICES" | /bin/jq -c '[.[]?[]? | select(.name == "workspace-sync" or .binding_name == "workspace-sync" or ((.name // "") | startswith("workspace-sync-")))][0].credentials')
+  [ -n "${s3_binding}" ] && [ "${s3_binding}" != null ] || { echo "workspace-sync binding credentials are missing" >&2; exit 1; }
+  printf '%s' "${VCAP_APPLICATION:-}" > /tmp/workspace-sync-vcap-application.json
+  rm -f /tmp/workspace-sync-ready
+  VCAP_SERVICES="{\"user-provided\":[{\"name\":\"workspace-sync\",\"credentials\":${s3_binding}}]}" WORKSPACE_SYNC_READY_FILE=/tmp/workspace-sync-ready /opt/opensandbox/cf-sandbox-workspace-sync &
+  sync_pid=$!
+  unset VCAP_SERVICES s3_binding
+  export VCAP_SERVICES
+  sync_ready=false
+  for attempt in $(seq 1 300); do
+    if ! kill -0 "${sync_pid}" 2>/dev/null; then
+      wait "${sync_pid}" || true
+      echo "workspace sync daemon exited during initial restore" >&2
+      exit 1
+    fi
+    if [ -f /tmp/workspace-sync-ready ]; then
+      sync_ready=true
+      break
+    fi
+    sleep 0.1
+  done
+  if [ "${sync_ready}" != true ]; then
+    echo "workspace sync daemon did not finish S3 restore" >&2
+    exit 1
+  fi
+fi
+
+stop_workspace_sync() {
+  if [ -n "${sync_pid}" ]; then
+    kill -TERM "${sync_pid}" 2>/dev/null || true
+    wait "${sync_pid}" 2>/dev/null || true
+    sync_pid=
+  fi
+}
 
 /opt/opensandbox/execd &
 execd_pid=$!
@@ -36,9 +77,8 @@ if [ "$#" -gt 0 ]; then
   status=$?
   set -e
   workload_pid=
-  kill -TERM "$execd_pid" 2>/dev/null || true
-  wait "$execd_pid" 2>/dev/null || true
-  execd_pid=
+  stop_workspace_sync
+  shutdown
   exit "$status"
 fi
 

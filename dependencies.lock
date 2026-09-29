@@ -41,6 +41,21 @@ execd:
   repository: https://github.com/opensandbox-group/OpenSandbox.git
   revision: 2bb5dde3af6736376ca127b1ae6ed0178727cd01
   path: components/execd
+workspace_sync:
+  module: github.com/rkoster/cf-sandbox-workspace-sync
+  source: workspace-sync/
+  version: local-tree
+  inotify_module: k8s.io/utils@v0.0.0-20260707023825-cf1189d6abe3
+rclone:
+  version: 1.75.1
+  platform: linux/amd64
+  uri: https://github.com/rclone/rclone/releases/download/v1.75.1/rclone-v1.75.1-linux-amd64.zip
+  sha256: 982b5aa772841168f8e380f139e9e787b2a105403e32b94da8676a0e1c0a13ab
+cf_cli:
+  version: 8.19.0
+  platform: linux/x86-64
+  uri: https://github.com/cloudfoundry/cli/releases/download/v8.19.0/cf8-cli_8.19.0_linux_x86-64.tgz
+  sha256: 98268ab3134bb3a1c97ffce797b4e6d35590a82e006cd098ad7a29f0a5cae7d8
 images:
   slim:
     tag: slim-0.1.1

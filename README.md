@@ -1,11 +1,21 @@
 # CF cflinuxfs5 coding sandbox image
 
 This repository assembles a public, Docker-lifecycle Cloud Foundry sandbox
-image containing Ruby, Bundler, Node.js, Yarn, Go, and upstream OpenSandbox
-`execd`. The target is Linux/amd64 on the CF `cflinuxfs5` stack.
+image containing Ruby, Bundler, Node.js, Yarn, Go, the CF CLI, upstream
+OpenSandbox `execd`, and a workspace sync daemon. The target is Linux/amd64 on
+the CF `cflinuxfs5` stack.
+
+The image also packages [`workspace-sync/`](workspace-sync/README.md), a small
+Go daemon that restores `/workspace` from a bound per-sandbox S3 bucket and
+syncs watched local changes back with rclone 1.75.1. It is started by the Docker
+image bootstrap when a `workspace-sync` service binding is present, restores
+before execd and the workload start, then is stopped after a finite workload
+exits. The daemon has no FUSE mount requirement. The CAPI facade provisions and
+binds a Garage service per sandbox when workspace storage is enabled.
 
 The first image is intentionally a toolchain image, not a hardened security
-boundary. It does not add persistence, user isolation, or an endpoint proxy.
+boundary. Workspace synchronization is opt-in and has no POSIX persistence
+guarantees; the image does not add user isolation or an endpoint proxy.
 Keep sandbox ingress behind the owning-agent mTLS route policy described in the
 workspace architecture.
 
@@ -31,6 +41,7 @@ manifests, filtered to `cflinuxfs5`, and are pinned by SHA-256 in
 - Node.js 24.15.0
 - Yarn 1.22.22
 - Go 1.26.5
+- CF CLI 8.19.0 (Linux x86-64, checksum-pinned)
 - execd source revision recorded in `dependencies.lock`
 - Ruby/Go buildpack manifest revisions recorded in `dependencies.lock`
 
@@ -64,8 +75,9 @@ the `/opt/stack/bin` toolchain path because CF's Docker lifecycle replaces the
 image `PATH`. To make the toolchain work with CF's default `/bin:/usr/bin`
 environment—including separate `cf ssh` shells—the image also places symlinks
 for Ruby, Bundler, Node.js, Yarn, and Go in `/usr/bin`, pointing to their
-installed binaries in `/opt/stack/bin`. Both the image symlinks and bootstrap
-PATH are retained for execd-launched workloads.
+installed binaries in `/opt/stack/bin`. The CF CLI is installed directly in
+`/usr/bin/cf`. Both the image symlinks and bootstrap PATH are retained for
+execd-launched workloads.
 
 By default the image runs
 `execd` on port `44772`. CF's Docker lifecycle supplies a process command which
