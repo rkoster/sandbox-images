@@ -11,7 +11,9 @@ syncs watched local changes back with rclone 1.75.1. It is started by the Docker
 image bootstrap when a `workspace-sync` service binding is present, restores
 before execd and the workload start, then is stopped after a finite workload
 exits. The daemon has no FUSE mount requirement. The CAPI facade provisions and
-binds a Garage service per sandbox when workspace storage is enabled.
+binds a Garage service per sandbox when workspace storage is enabled. A live
+CF sandbox restart restored a synced file and preserved deletions on
+2026-09-30; this does not establish survival of Garage service-app replacement.
 
 The first image is intentionally a toolchain image, not a hardened security
 boundary. Workspace synchronization is opt-in and has no POSIX persistence
